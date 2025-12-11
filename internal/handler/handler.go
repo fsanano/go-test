@@ -3,15 +3,18 @@ package handler
 import (
 	"net/http"
 
+	"fsanano/go-test/internal/service/skinport"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Handler struct {
-	router *chi.Mux
+	router         *chi.Mux
+	skinportClient *skinport.Client
 }
 
-func NewHandler() *Handler {
+func NewHandler(skinportClient *skinport.Client) *Handler {
 	router := chi.NewRouter()
 
 	// Middleware
@@ -20,7 +23,8 @@ func NewHandler() *Handler {
 	router.Use(middleware.RequestID)
 
 	h := &Handler{
-		router: router,
+		router:         router,
+		skinportClient: skinportClient,
 	}
 
 	h.registerRoutes()
@@ -30,6 +34,9 @@ func NewHandler() *Handler {
 func (h *Handler) registerRoutes() {
 	h.router.Route("/v1", func(r chi.Router) {
 		r.Get("/health", h.HealthCheck)
+		r.Route("/skinport", func(r chi.Router) {
+			r.Get("/items", h.GetSkinportItems)
+		})
 	})
 }
 
