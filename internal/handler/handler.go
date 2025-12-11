@@ -12,9 +12,10 @@ import (
 type Handler struct {
 	router         *chi.Mux
 	skinportClient *skinport.Client
+	shopHandler    *ShopHandler
 }
 
-func NewHandler(skinportClient *skinport.Client) *Handler {
+func NewHandler(skinportClient *skinport.Client, shopHandler *ShopHandler) *Handler {
 	router := chi.NewRouter()
 
 	// Middleware
@@ -25,6 +26,7 @@ func NewHandler(skinportClient *skinport.Client) *Handler {
 	h := &Handler{
 		router:         router,
 		skinportClient: skinportClient,
+		shopHandler:    shopHandler,
 	}
 
 	h.registerRoutes()
@@ -34,9 +36,12 @@ func NewHandler(skinportClient *skinport.Client) *Handler {
 func (h *Handler) registerRoutes() {
 	h.router.Route("/v1", func(r chi.Router) {
 		r.Get("/health", h.HealthCheck)
+
 		r.Route("/skinport", func(r chi.Router) {
 			r.Get("/items", h.GetSkinportItems)
 		})
+
+		r.Post("/buy", h.shopHandler.BuyItem)
 	})
 }
 

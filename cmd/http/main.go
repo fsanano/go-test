@@ -12,6 +12,8 @@ import (
 
 	"fsanano/go-test/internal/config"
 	"fsanano/go-test/internal/handler"
+	"fsanano/go-test/internal/repository"
+	"fsanano/go-test/internal/service"
 	"fsanano/go-test/internal/service/skinport"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,12 +40,19 @@ func main() {
 	fmt.Println("Connected to database")
 
 	// 3. Setup Logic
+	// Logic - Shop
+	shopRepo := repository.NewShopRepository(dbPool)
+	shopService := service.NewShopService(shopRepo)
+	shopHandler := handler.NewShopHandler(shopService)
+
+	// Logic - Skinport
 	skinportClient := skinport.NewClient(skinport.Config{
 		APIURL:   cfg.Skinport.APIURL,
 		ClientID: cfg.Skinport.ClientID,
 		APIKey:   cfg.Skinport.APIKey,
 	})
-	h := handler.NewHandler(skinportClient)
+
+	h := handler.NewHandler(skinportClient, shopHandler)
 
 	// 4. Setup Server
 	server := &http.Server{
