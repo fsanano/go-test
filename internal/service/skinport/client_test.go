@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -146,4 +148,77 @@ func TestGetAllItems_InvalidJSON(t *testing.T) {
 	_, err := client.GetAllItems(context.Background(), "", "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid character")
+}
+
+func TestGetAllItems_LargeDataset(t *testing.T) {
+	// Generate 1000000 items
+	count := 1000000
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Stream the response manually to avoid huge memory allocation in mock
+		w.Write([]byte("["))
+		for i := 0; i < count; i++ {
+			if i > 0 {
+				w.Write([]byte(","))
+			}
+			// Use simple string concat or fmt for speed in test, mock data
+			// Item-0, Item-1, ...
+			// If tradable: Item-0...Item-49999
+			// If non-tradable: Item-0...Item-49999 (same names to force merge)
+
+			itemJSON := fmt.Sprintf(`{
+				"market_hash_name": "Item-%d",
+				"currency": "EUR",
+				"suggested_price": 13.18,
+				"item_page": "https://skinport.com/item/csgo/item-%d",
+				"market_page": "https://skinport.com/market/730?cat=Rifle&item=Item-%d",
+				"min_price": %d.5,
+				"max_price": 18.22,
+				"mean_price": 12.58,
+				"median_price": 13.37,
+				"quantity": 1,
+				"created_at": 1535988253,
+				"updated_at": 1568073728,
+				"slug": "item-%d"
+			}`, i, i, i, i, i)
+			w.Write([]byte(itemJSON))
+		}
+		w.Write([]byte("]"))
+	}))
+	defer ts.Close()
+
+	client := NewClient(Config{APIURL: ts.URL})
+
+	start := time.Now()
+	items, err := client.GetAllItems(context.Background(), "730", "EUR")
+	duration := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.Len(t, items, count, "Should have %d merged items", count)
+
+	// Sanity check a few items
+	itemMap := make(map[string]ResponseItem)
+	for _, item := range items {
+		itemMap[item.MarketHashName] = item
+	}
+
+	// Check first item
+	item0, ok := itemMap["Item-0"]
+	assert.True(t, ok)
+	assert.Equal(t, 2, item0.Quantity) // 1 tradable + 1 non-tradable
+	if assert.NotNil(t, item0.MinPriceTradable) {
+		assert.Equal(t, 0.5, *item0.MinPriceTradable)
+	}
+	if assert.NotNil(t, item0.MinPriceNonTradable) {
+		assert.Equal(t, 0.5, *item0.MinPriceNonTradable)
+	}
+
+	// Check last item
+	itemLast, ok := itemMap[fmt.Sprintf("Item-%d", count-1)]
+	assert.True(t, ok)
+	assert.Equal(t, 2, itemLast.Quantity)
+
+	t.Logf("Processed %d items in %v", count*2, duration)
 }

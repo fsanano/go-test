@@ -23,6 +23,10 @@ init: ## Init project (start db, migrate)
 	@goose -dir migrations postgres "$(DATABASE_URL)" up || echo "Warning: Migrations failed or none found."
 	@echo "Project initialized! Run 'make run' to start the app."
 
+test: ## Run unit tests
+	@echo "Running tests..."
+	@go test -v ./...
+
 run: ## Run with hot-reload (requires air)
 	@command -v air >/dev/null 2>&1 || (echo "Installing air..." && go install github.com/air-verse/air@v1.52.3)
 	@command -v air >/dev/null 2>&1 || export PATH="$$PATH:$$(go env GOPATH)/bin"
@@ -51,4 +55,4 @@ migration-down:
 	@echo "Rolling back migrations..."
 	@goose -dir migrations postgres "$(DATABASE_URL)" down
 
-.PHONY: build run up down migration-create migration-up migration-down
+.PHONY: build run up down migration-create migration-up migration-down test
