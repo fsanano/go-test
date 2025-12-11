@@ -98,7 +98,7 @@ func (c *Client) GetAllItems(ctx context.Context, appID, currency string) ([]Res
 	// Request A: Tradable
 	g.Go(func() error {
 		var err error
-		tradableItems, err = c.fetchItems(ctx, true, appID, currency)
+		tradableItems, err = c.fetchItems(ctx, appID, currency, true)
 		if err != nil {
 			return fmt.Errorf("failed to fetch tradable items: %w", err)
 		}
@@ -108,7 +108,7 @@ func (c *Client) GetAllItems(ctx context.Context, appID, currency string) ([]Res
 	// Request B: Non-Tradable
 	g.Go(func() error {
 		var err error
-		nonTradableItems, err = c.fetchItems(ctx, false, appID, currency)
+		nonTradableItems, err = c.fetchItems(ctx, appID, currency, false)
 		if err != nil {
 			return fmt.Errorf("failed to fetch non-tradable items: %w", err)
 		}
@@ -164,7 +164,7 @@ func (c *Client) GetAllItems(ctx context.Context, appID, currency string) ([]Res
 	return result, nil
 }
 
-func (c *Client) fetchItems(ctx context.Context, tradable bool, appID, currency string) ([]RawItem, error) {
+func (c *Client) fetchItems(ctx context.Context, appID, currency string, tradable bool) ([]RawItem, error) {
 	url := fmt.Sprintf("%s/items", c.config.APIURL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -173,20 +173,10 @@ func (c *Client) fetchItems(ctx context.Context, tradable bool, appID, currency 
 	}
 
 	q := req.URL.Query()
-	if appID != "" {
-		// The default is "730"
-		q.Add("app_id", appID)
-	}
+	q.Add("app_id", appID)
+	q.Add("currency", currency)
+	q.Add("tradable", fmt.Sprintf("%t", tradable))
 
-	if currency != "" {
-		// The default is "EUR"
-		q.Add("currency", currency)
-	}
-
-	if !tradable {
-		// The default is "true"
-		q.Set("tradable", "false")
-	}
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.client.Do(req)
