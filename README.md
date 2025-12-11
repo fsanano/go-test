@@ -1,6 +1,6 @@
 # Go Backend Project
 
-High-load service backend scaffold for a trading company.
+High-load HTTP Server.
 
 ## Tech Stack
 - Go 1.23+
@@ -35,8 +35,8 @@ High-load service backend scaffold for a trading company.
 - `make init`: Start DB and apply migrations
 - `make run`: Run the application locally (Air)
 - `make build`: Build the binary
-- `make docker-up`: Start all services via Docker
-- `make docker-down`: Stop containers
+- `make up`: Start all services via Docker
+- `make down`: Stop containers
 - `make migration-create`: Create a new migration file
 - `make migration-up`: Apply migrations
 - `make migration-down`: Rollback migrations

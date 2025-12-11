@@ -28,7 +28,9 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) registerRoutes() {
-	h.router.Get("/health", h.HealthCheck)
+	h.router.Route("/v1", func(r chi.Router) {
+		r.Get("/health", h.HealthCheck)
+	})
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

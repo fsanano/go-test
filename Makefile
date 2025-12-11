@@ -11,6 +11,10 @@ build:
 	@go build -o bin/http cmd/http/main.go
 
 init: ## Init project (start db, migrate)
+	@if [ ! -f .env ]; then \
+		echo "Creating .env from .env.example..."; \
+		cp .env.example .env; \
+	fi
 	@echo "Starting Database..."
 	@docker-compose up -d db
 	@echo "Waiting for Database to be ready..."
@@ -25,11 +29,11 @@ run: ## Run with hot-reload (requires air)
 	$$(go env GOPATH)/bin/air -c .air.toml
 
 # Docker
-docker-up:
+up:
 	@echo "Starting services..."
 	@docker-compose up -d --build
 
-docker-down:
+down:
 	@echo "Stopping services..."
 	@docker-compose down
 
@@ -47,4 +51,4 @@ migration-down:
 	@echo "Rolling back migrations..."
 	@goose -dir migrations postgres "$(DATABASE_URL)" down
 
-.PHONY: build run docker-up docker-down migration-create migration-up migration-down
+.PHONY: build run up down migration-create migration-up migration-down
